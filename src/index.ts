@@ -1,143 +1,110 @@
-import cors from "cors";
+// src/index.ts
 import express from "express";
-import { connectDB, getCakesCollection } from "./mongoDb.ts";
-import { type DataType } from "./db.ts";
-import { ObjectId } from "mongodb";
-import { deleteUploadcareFile } from "./uploadCar.ts";
-import { cleanUp } from "./cleanup.ts";
+import cors from "cors";
+import { connectDB, disconnectDB, getCakesCollection } from "./mongoDb";
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
+
 app.use(cors());
+app.use(express.json());
 
-setInterval(() => {
-	cleanUp()
-}, 24 * 60 * 60 * 1000)
-
-// GET - barcha cakes
-app.get("/cakes", async (req, res) => {
-	try {
-		const collection = getCakesCollection();
-		const cakes = await collection.find().toArray();
-		res.json(cakes);
-	} catch (error) {
-		res.status(500).json({ error: "Ma'lumotlarni olishda xatolik" });
-	}
-})
-
-// POST - yangi cake qo'shish
-app.post("/cakes/new", async (req, res) => {
-	try {
-		const newCake: DataType = req.body;
-
-		if (!newCake.name) {
-			return res.status(400).json({
-				error: "Name majburiy!"
-			});
-		}
-
-		const collection = getCakesCollection();
-		const result = await collection.insertOne(newCake);
-
-		res.status(201).json({
-			message: "Cake muvaffaqiyatli qo'shildi!",
-			id: result.insertedId,
-			cake: newCake
-		});
-	} catch (error) {
-		res.status(500).json({ error: "Server xatosi" });
-	}
-})
-
-// PUT - cake yangilash
-app.put("/cakes/:id", async (req, res) => {
-	try {
-		const { id } = req.params;
-		const updateData = req.body;
-
-		const collection = getCakesCollection();
-		const result = await collection.updateOne(
-			{ _id: new ObjectId(id) },
-			{ $set: updateData }
-		);
-
-		if (result.matchedCount === 0) {
-			return res.status(404).json({ error: "Cake topilmadi!" });
-		}
-
-		res.json({
-			message: "Cake yangilandi!",
-			modifiedCount: result.modifiedCount
-		});
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Yangilashda xatolik" });
-	}
+// Test route
+app.get("/", (req, res) => {
+  res.json({
+    message: "Cake Store API ishlayapti!",
+    version: "1.0.0",
+    status: "active",
+  });
 });
 
-// DELETE - cake o'chirish
-
-app.delete("/cakes/:id", async (req, res) => {
-	try {
-		const { id } = req.params;
-		const collection = getCakesCollection();
-
-		const cake = await collection.findOne({ _id: new ObjectId(id) });
-		if (!cake) return res.status(404).json({ error: "Cake topilmadi!" });
-
-		// Rasmlarni o'chirish
-		if (cake.images && Array.isArray(cake.images)) {
-			for (const imageUrl of cake.images) {
-				try {
-					const match = imageUrl.match(/https:\/\/.*\.ucarecdn\.net\/([^\/]+)\//);
-					const uuid = match ? match[1] : null;
-					if (uuid) await deleteUploadcareFile(uuid);
-				} catch (err) {
-					console.error("Uploadcare delete error:", err);
-				}
-			}
-		}
-
-		const result = await collection.deleteOne({ _id: new ObjectId(id) });
-		if (result.deletedCount === 0) return res.status(404).json({ error: "Cake topilmadi!" });
-
-		res.json({ message: "Cake va rasmlari muvaffaqiyatli o'chirildi!", id });
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Server xatosi" });
-	}
+// Cakes routes
+app.get("/api/cakes", async (req, res) => {
+  try {
+    const cakesCollection = getCakesCollection();
+    const cakes = await cakesCollection.find({}).toArray();
+    res.json({ success: true, data: cakes });
+  } catch (error) {
+    console.error("Cakes olishda xato:", error);
+    res.status(500).json({ success: false, error: "Server xatosi" });
+  }
 });
 
+app.get("/api/cakes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cakesCollection = getCakesCollection();
+    //@ts-expect-error
+    const cake = await cakesCollection.findOne({ _id: id });
 
+    if (!cake) {
+      return res.status(404).json({ success: false, error: "Cake topilmadi" });
+    }
 
-// app.delete("/cakes/:id", async (req, res) => {
-// 	try {
-// 		const { id } = req.params;
-
-// 		const collection = getCakesCollection();
-// 		const result = await collection.deleteOne({ _id: new ObjectId(id) });
-
-// 		if (result.deletedCount === 0) {
-// 			return res.status(404).json({
-// 				error: "Cake topilmadi!"
-// 			});
-// 		}
-
-
-
-// 		res.json({
-// 			message: "Cake o'chirildi!",
-// 			id: id
-// 		});
-// 	} catch (error) {
-// 		res.status(500).json({ error: "Server xatosi" });
-// 	}
-// })
-const PORT = 5000;
-
-// Serverni MongoDB ulanishdan keyin ishga tushirish
-connectDB().then(() => {
-	app.listen(PORT, () => {
-		console.log(`Server is running on port ${PORT}...`);
-	});
+    res.json({ success: true, data: cake });
+  } catch (error) {
+    console.error("Cake olishda xato:", error);
+    res.status(500).json({ success: false, error: "Server xatosi" });
+  }
 });
+
+app.post("/api/cakes", async (req, res) => {
+  try {
+    const cakeData = req.body;
+    const cakesCollection = getCakesCollection();
+    const result = await cakesCollection.insertOne(cakeData);
+
+    res.status(201).json({
+      success: true,
+      data: { _id: result.insertedId, ...cakeData },
+    });
+  } catch (error) {
+    console.error("Cake qo'shishda xato:", error);
+    res.status(500).json({ success: false, error: "Server xatosi" });
+  }
+});
+
+// Health check
+app.get("/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Server'ni ishga tushirish
+async function startServer() {
+  try {
+    // Avval MongoDB'ga ulanish
+    await connectDB();
+
+    // Keyin server'ni ishga tushirish
+    app.listen(PORT, () => {
+      console.log(`🚀 Server ${PORT} portda ishga tushdi`);
+      console.log(`📍 http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Server ishga tushmadi:", error);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+process.on("SIGINT", async () => {
+  console.log("\n⏹️  Server to'xtatilmoqda...");
+  await disconnectDB();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  console.log("\n⏹️  Server to'xtatilmoqda...");
+  await disconnectDB();
+  process.exit(0);
+});
+
+// Unhandled rejection handler
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection:", reason);
+});
+
+startServer();
