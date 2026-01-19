@@ -1,31 +1,68 @@
-import { MongoClient, Db, Collection } from 'mongodb';
+// src/mongoDb.ts
+import { MongoClient, ServerApiVersion, Db } from 'mongodb';
 
-const MONGODB_URI = process.env.MONGODB_URI! as string;
-const DB_NAME = 'cakes_db';
+const username = process.env.MONGODB_USERNAME!;
+const password = process.env.MONGODB_PASSWORD!;
+const cluster = process.env.MONGODB_CLUSTER || "cluster0.xswhndp.mongodb.net";
+const dbName = process.env.MONGODB_DBNAME!
 
-let db: Db;
-let cakesCollection: Collection;
+// Connection URI
+const uri = `mongodb+srv://${username}:${password}@${cluster}/${dbName}?retryWrites=true&w=majority&appName=CakeStore`;
 
-export async function connectDB() {
-    try {
-        const client = new MongoClient(MONGODB_URI, {
-            tls: true,                       // SSL ulanish
-            serverSelectionTimeoutMS: 5000,  // 5 sekund kutish
-        });
+// Client yaratish
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+  // TLS sozlamalari
+  tls: true,
+  tlsAllowInvalidCertificates: false,
+  tlsAllowInvalidHostnames: false,
+  // Connection timeout sozlamalari
+  serverSelectionTimeoutMS: 5000,
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+});
 
-        await client.connect();
-        console.log('MongoDB ga ulanish muvaffaqiyatli!');
+let db: Db | null = null;
 
-        db = client.db(DB_NAME);
-        cakesCollection = db.collection('cakes');
-
-        return db;
-    } catch (error) {
-        console.error('MongoDB ulanish xatosi:', error);
-        process.exit(1);
+export async function connectDB(): Promise<Db> {
+  try {
+    if (db) {
+      console.log("MongoDB allaqachon ulangan");
+      return db;
     }
+
+    console.log("MongoDB'ga ulanmoqda...");
+    await client.connect();
+    
+    // Ulanishni tekshirish
+    await client.db("admin").command({ ping: 1 });
+    console.log("MongoDB'ga muvaffaqiyatli ulandi! ✅");
+    
+    db = client.db(dbName);
+    return db;
+  } catch (error) {
+    console.error("MongoDB ulanish xatosi:", error);
+    throw error;
+  }
 }
 
-export function getCakesCollection() {
-    return cakesCollection;
+export async function disconnectDB(): Promise<void> {
+  try {
+    await client.close();
+    db = null;
+    console.log("MongoDB'dan uzildi");
+  } catch (error) {
+    console.error("MongoDB uzilish xatosi:", error);
+  }
+}
+
+export function getDB(): Db {
+  if (!db) {
+    throw new Error("Database'ga avval ulanish kerak!");
+  }
+  return db;
 }
