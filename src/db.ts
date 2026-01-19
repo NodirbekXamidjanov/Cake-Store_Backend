@@ -1,10 +1,14 @@
-export type DataType = {
-    id: number;
-    initialColor: string;
-    appliedColor: string;
+type Category = "To'rt" | "Pirojni"
 
+export type DataType = {
+        name: string,
+        category: Category,
+        ingredientsOfCake: string,
+        price: number,
+        timeToGetReady: string
+        mainImage: string,
+        images: string[],
+        date: string
 }
 
-export const database: DataType[] = [
-
-]
+export const database: DataType[] = []
