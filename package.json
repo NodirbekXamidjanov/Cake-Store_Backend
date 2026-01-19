@@ -1,24 +1,24 @@
 {
-	"name": "server",
-	"module": "index.ts",
-	"type": "module",
-	"private": true,
-	"scripts": {
-		"dev": "bun run --watch ./src/index.ts"
-	},
-	"devDependencies": {
-		"@faker-js/faker": "^10.2.0",
-		"@types/bun": "latest",
-		"@types/cors": "^2.8.19",
-		"@types/express": "^5.0.3",
-		"axios": "^1.13.2",
-		"mongodb": "^7.0.0"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
-	},
-	"dependencies": {
-		"cors": "^2.8.5",
-		"express": "^5.1.0"
-	}
+  "name": "server",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch ./src/index.ts",
+    "build": "bun run ./src/index.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mongodb": "^7.0.0",
+    "axios": "^1.13.2"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.2.0",
+    "@types/bun": "latest",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
 }
