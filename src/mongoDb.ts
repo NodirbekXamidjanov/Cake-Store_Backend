@@ -1,10 +1,10 @@
 // src/mongoDb.ts
 import { MongoClient, ServerApiVersion, Db, Collection } from 'mongodb';
 
-const username = process.env.MONGODB_USERNAME;
-const password = process.env.MONGODB_PASSWORD;
-const cluster = process.env.MONGODB_CLUSTER
-const dbName = process.env.MONGODB_DBNAME;
+const username = process.env.MONGODB_USERNAME!;
+const password = process.env.MONGODB_PASSWORD!;
+const cluster = process.env.MONGODB_CLUSTER!
+const dbName = process.env.MONGODB_DBNAME!;
 
 if (!username || !password || !cluster) {
   throw new Error("MongoDB credentials topilmadi! Environment variables'ni tekshiring.");
