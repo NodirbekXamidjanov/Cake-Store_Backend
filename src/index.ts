@@ -4,7 +4,7 @@ import cors from "cors";
 import { connectDB, disconnectDB, getCakesCollection } from "./mongoDb";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT!
 
 app.use(cors());
 app.use(express.json());
