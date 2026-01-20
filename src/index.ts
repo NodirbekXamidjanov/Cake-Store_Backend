@@ -48,7 +48,7 @@ app.get("/api/cakes/:id", async (req, res) => {
   }
 });
 
-app.post("/api/cakes", async (req, res) => {
+app.post("/api/cakes/new", async (req, res) => {
   try {
     const cakeData = req.body;
     const cakesCollection = getCakesCollection();
